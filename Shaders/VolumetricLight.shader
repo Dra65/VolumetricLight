@@ -4,7 +4,6 @@ Shader "Unlit/VolumetricLight"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _SecondaryTex("Secondary Texture", 2D) = "white" {}
-        _WorldPosRT ("WorldPosRT", 2D) = "white" {}
         [Range(0,1)]_Scattering("Scattering", float) = 0.94
     }
     SubShader
@@ -48,13 +47,12 @@ Shader "Unlit/VolumetricLight"
 
             sampler2D _MainTex;
             sampler2D _SourceTex;
-            sampler2D _WorldPosRT;
 
             float3 _BL, _TL, _TR, _BR;
 
             // Maximum amount of raymarching samples
             #define MAX_STEP_COUNT 32
-            #define MAX_DIST 1
+            #define MAX_DIST 100
 
             #define DENSITY_MULTIPLIER 1
 
@@ -99,26 +97,12 @@ Shader "Unlit/VolumetricLight"
                 return ray;
             }
 
-            Ray CreateCameraRay(float2 uv)
-            {
-                // Transform the camera origin to world space
-                // float3 origin = mul(_CamToWorld, float4(0.0f, 0.0f, 0.0f, 1.0f)).xyz;
-                float3 origin = _WorldSpaceCameraPos;
-
-                // Invert the perspective projection of the view-space position
-                float3 direction = mul(UNITY_MATRIX_I_P, float4(uv, 0.0f, 1.0f)).xyz;
-                // Transform the direction from camera to world space and normalize
-                direction = mul(unity_CameraToWorld, float4(direction, 0.0f)).xyz;
-                direction = normalize(direction);
-                return CreateRay(origin, direction);
-            }
-
             float Raytracing(Ray ray, float LdotV, float depth)
             {
                 const float3 rayOrigin = ray.origin;
                 const float3 dir = ray.direction;
 
-                const float stepSize = depth > 0 ? depth/MAX_STEP_COUNT : MAX_DIST/MAX_STEP_COUNT;
+                const float stepSize = depth > 0 ? depth / MAX_STEP_COUNT : MAX_DIST / MAX_STEP_COUNT;
 
                 float3 samplePosition = rayOrigin;
 
@@ -127,17 +111,9 @@ Shader "Unlit/VolumetricLight"
 
                 for (; j < MAX_STEP_COUNT; j++)
                 {
-                    float shadowAtt = GetShadowAttenuation(samplePosition);
+                    density += ComputeScattering(LdotV) * GetShadowAttenuation(samplePosition);
 
-                    if (shadowAtt > 0.1f)
-                        density += ComputeScattering(LdotV);
-                    
                     samplePosition += dir * stepSize;
-                    
-                    //
-                    // float rayDist = STEP_SIZE * j;
-
-                    // if (rayDist >= depth) break;
                 }
 
                 return saturate(density / j);
@@ -274,7 +250,6 @@ Shader "Unlit/VolumetricLight"
                 float4 sample = tex2D(_MainTex, i.uv);
 
                 float density = sample.r;
-
 
                 float4 result = float4(saturate(col + density), 1);
 

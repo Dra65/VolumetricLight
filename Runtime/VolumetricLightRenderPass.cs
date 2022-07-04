@@ -10,7 +10,6 @@ public class VolumetricLightRenderPass : ScriptableRenderPass
 
     Material material;
     RenderTargetIdentifier cameraColorTargetIdent;
-    RenderTexture worldPosRT;
     private ScriptableRenderer renderer;
 
     private RenderTexture src, dest, source;
@@ -27,18 +26,14 @@ public class VolumetricLightRenderPass : ScriptableRenderPass
         this.profilerTag = profilerTag;
         this.renderPassEvent = renderPassEvent;
         this.material = material;
-        this.worldPosRT = worldPosRT;
         this.iterations = iterations;
     }
 
-    // This isn't part of the ScriptableRenderPass class and is our own addition.
-    // For this custom pass we need the camera's color target, so that gets passed in.
     public void Setup(ScriptableRenderer renderer)
     {
         this.renderer = renderer;
     }
 
-    // called each frame before Execute, use it to set up things the pass will need
     public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
     {
         cameraColorTargetIdent = renderer.cameraColorTarget;
@@ -53,7 +48,6 @@ public class VolumetricLightRenderPass : ScriptableRenderPass
 
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
-        // fetch a command buffer to use
         CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
         cmd.Clear();
 
@@ -61,6 +55,7 @@ public class VolumetricLightRenderPass : ScriptableRenderPass
 
         material.SetTexture("_SourceTex", source);
 
+        //store the FrameBuffer in the source
         cmd.Blit(cameraColorTargetIdent, source);
         cmd.Blit(source, cameraColorTargetIdent);
         cmd.Blit(cameraColorTargetIdent, source);
@@ -68,9 +63,7 @@ public class VolumetricLightRenderPass : ScriptableRenderPass
         cmd.Blit(null, src, material, VolumetricLightPass);
 
         cmd.Blit(src, dest, material, BlurPass);
-        
         renderTextures.Add(dest);
-        
         RenderTexture.ReleaseTemporary(src);
         src = dest;
 

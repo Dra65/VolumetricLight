@@ -101,11 +101,9 @@ Shader "Unlit/VolumetricLight"
             {
                 const float3 rayOrigin = ray.origin;
                 const float3 dir = ray.direction;
-
                 const float stepSize = depth > 0 ? depth / MAX_STEP_COUNT : MAX_DIST / MAX_STEP_COUNT;
 
                 float3 samplePosition = rayOrigin;
-
                 float density = 0;
                 int j = 0;
 
@@ -130,9 +128,9 @@ Shader "Unlit/VolumetricLight"
             float4 frag(v2f i) : SV_Target
             {
                 float2 UV = i.vertex.xyz / _ScaledScreenParams.xy;
-                float3 direction = 0;
-
                 float depth = GetDepth(UV);
+                
+                float3 direction = 0;
                 float realDepth = 0;
 
                 if (depth == 0)
@@ -147,7 +145,6 @@ Shader "Unlit/VolumetricLight"
                     direction = worldPos - _WorldSpaceCameraPos;
                     realDepth = length(direction);
                 }
-
 
                 Ray ray = CreateRay(_WorldSpaceCameraPos, normalize(direction));
 
@@ -181,7 +178,6 @@ Shader "Unlit/VolumetricLight"
             };
 
             sampler2D _MainTex;
-            sampler2D _SourceTex;
             float4 _MainTex_TexelSize;
 
             float2 SampleBox(float2 uv, float delta)
@@ -233,7 +229,6 @@ Shader "Unlit/VolumetricLight"
 
             sampler2D _MainTex;
             sampler2D _SourceTex;
-            float4 _MainTex_TexelSize;
 
             v2f vert(appdata v)
             {
@@ -246,7 +241,6 @@ Shader "Unlit/VolumetricLight"
             float4 frag(v2f i) : SV_Target
             {
                 float3 col = tex2D(_SourceTex, i.uv).rgb;
-
                 float4 sample = tex2D(_MainTex, i.uv);
 
                 float density = sample.r;
